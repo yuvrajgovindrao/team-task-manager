@@ -10,14 +10,19 @@ function isSmtpConfigured() {
   return !!(process.env.SMTP_USER && process.env.SMTP_PASS);
 }
 
-// Create transporter (Gmail SMTP)
+// Create transporter (Gmail SMTP via port 587 STARTTLS)
 function createTransporter() {
   return nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
   });
 }
 

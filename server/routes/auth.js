@@ -54,16 +54,23 @@ router.post('/signup', async (req, res) => {
       [name.trim(), email.toLowerCase().trim(), passwordHash, account_type, otp, otpExpires]
     );
 
-    // Send OTP
-    const mailResult = await sendOTP(email.toLowerCase().trim(), otp);
+    // Send OTP (fall back to demo mode if email fails)
+    let mailResult = { demo: true, otp };
+    try {
+      mailResult = await sendOTP(email.toLowerCase().trim(), otp);
+    } catch (mailErr) {
+      console.error('Email send failed, falling back to demo mode:', mailErr.message);
+    }
 
     const response = {
-      message: 'Account created. Please verify your email with the OTP sent.',
+      message: mailResult.demo
+        ? 'Account created. Use the OTP shown below to verify.'
+        : 'Account created. Please check your email for the verification code.',
       requiresVerification: true,
       email: email.toLowerCase().trim(),
     };
 
-    // In demo mode (no SMTP), include the OTP in the response
+    // In demo mode or email failure, include the OTP in the response
     if (mailResult.demo) {
       response.demoOtp = otp;
     }
@@ -162,9 +169,14 @@ router.post('/resend-otp', async (req, res) => {
       [otp, otpExpires, user.id]
     );
 
-    const mailResult = await sendOTP(email.toLowerCase().trim(), otp);
+    let mailResult = { demo: true, otp };
+    try {
+      mailResult = await sendOTP(email.toLowerCase().trim(), otp);
+    } catch (mailErr) {
+      console.error('Email send failed, falling back to demo mode:', mailErr.message);
+    }
 
-    const response = { message: 'A new OTP has been sent to your email.' };
+    const response = { message: mailResult.demo ? 'Use the OTP shown below.' : 'A new OTP has been sent to your email.' };
     if (mailResult.demo) {
       response.demoOtp = otp;
     }

@@ -9,22 +9,17 @@ export default function VerifyOTP() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [demoOtp, setDemoOtp] = useState('');
   const inputRefs = useRef([]);
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const email = location.state?.email || '';
-  const initialDemoOtp = location.state?.demoOtp || '';
 
   useEffect(() => {
     if (!email) {
       navigate('/signup');
       return;
-    }
-    if (initialDemoOtp) {
-      setDemoOtp(initialDemoOtp);
     }
     inputRefs.current[0]?.focus();
   }, []);
@@ -101,14 +96,11 @@ export default function VerifyOTP() {
     setSuccess('');
 
     try {
-      const data = await post('/auth/resend-otp', { email });
+      await post('/auth/resend-otp', { email });
       setSuccess('A new OTP has been sent to your email.');
       setResendCooldown(60);
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
-      if (data.demoOtp) {
-        setDemoOtp(data.demoOtp);
-      }
     } catch (err) {
       setError(err.message);
     }
@@ -126,13 +118,6 @@ export default function VerifyOTP() {
 
         {error && <div className="alert alert-error">{error}</div>}
         {success && <div className="alert alert-success">{success}</div>}
-
-        {demoOtp && (
-          <div className="demo-otp-banner">
-            <span className="demo-label">📧 Demo Mode — OTP:</span>
-            <span className="demo-code">{demoOtp}</span>
-          </div>
-        )}
 
         <form onSubmit={handleVerify}>
           <div className="otp-container">

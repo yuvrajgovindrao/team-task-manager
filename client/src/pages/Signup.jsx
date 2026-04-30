@@ -39,7 +39,7 @@ export default function Signup() {
       const data = await post('/auth/signup', { name, email, password, account_type: accountType });
       // Redirect to OTP verification
       navigate('/verify-otp', {
-        state: { email: data.email, demoOtp: data.demoOtp || '' },
+        state: { email: data.email },
       });
     } catch (err) {
       setError(err.message);

@@ -3,11 +3,6 @@ function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// Check if email sending is configured
-function isEmailConfigured() {
-  return !!process.env.RESEND_API_KEY;
-}
-
 // Build OTP email HTML
 function buildOtpHtml(otp) {
   return `
@@ -31,9 +26,8 @@ function buildOtpHtml(otp) {
 
 // Send OTP email via Resend API (HTTPS, works on Railway)
 async function sendOTP(email, otp) {
-  if (!isEmailConfigured()) {
-    console.log(`[DEMO MODE] OTP for ${email}: ${otp}`);
-    return { demo: true, otp };
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error('Email service is not configured. Please set RESEND_API_KEY.');
   }
 
   const res = await fetch('https://api.resend.com/emails', {
@@ -57,7 +51,6 @@ async function sendOTP(email, otp) {
   }
 
   console.log(`OTP email sent to ${email}`);
-  return { demo: false };
 }
 
-module.exports = { generateOTP, sendOTP, isEmailConfigured };
+module.exports = { generateOTP, sendOTP };

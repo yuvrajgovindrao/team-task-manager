@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const { pool } = require('../config/db');
 const { authenticate } = require('../middleware/auth');
 const { validateEmail, validatePassword, validateRequired, validateAccountType } = require('../utils/validators');
-const { generateOTP, sendOTP, isEmailConfigured } = require('../utils/mailer');
+const { generateOTP, sendOTP } = require('../utils/mailer');
 
 const router = express.Router();
 
@@ -54,28 +54,14 @@ router.post('/signup', async (req, res) => {
       [name.trim(), email.toLowerCase().trim(), passwordHash, account_type, otp, otpExpires]
     );
 
-    // Send OTP (fall back to demo mode if email fails)
-    let mailResult = { demo: true, otp };
-    try {
-      mailResult = await sendOTP(email.toLowerCase().trim(), otp);
-    } catch (mailErr) {
-      console.error('Email send failed, falling back to demo mode:', mailErr.message);
-    }
+    // Send OTP email
+    await sendOTP(email.toLowerCase().trim(), otp);
 
-    const response = {
-      message: mailResult.demo
-        ? 'Account created. Use the OTP shown below to verify.'
-        : 'Account created. Please check your email for the verification code.',
+    res.status(201).json({
+      message: 'Account created. Please check your email for the verification code.',
       requiresVerification: true,
       email: email.toLowerCase().trim(),
-    };
-
-    // In demo mode or email failure, include the OTP in the response
-    if (mailResult.demo) {
-      response.demoOtp = otp;
-    }
-
-    res.status(201).json(response);
+    });
   } catch (err) {
     console.error('Signup error:', err);
     res.status(500).json({ error: 'Internal server error.' });
@@ -169,19 +155,10 @@ router.post('/resend-otp', async (req, res) => {
       [otp, otpExpires, user.id]
     );
 
-    let mailResult = { demo: true, otp };
-    try {
-      mailResult = await sendOTP(email.toLowerCase().trim(), otp);
-    } catch (mailErr) {
-      console.error('Email send failed, falling back to demo mode:', mailErr.message);
-    }
+    // Send OTP email
+    await sendOTP(email.toLowerCase().trim(), otp);
 
-    const response = { message: mailResult.demo ? 'Use the OTP shown below.' : 'A new OTP has been sent to your email.' };
-    if (mailResult.demo) {
-      response.demoOtp = otp;
-    }
-
-    res.json(response);
+    res.json({ message: 'A new OTP has been sent to your email.' });
   } catch (err) {
     console.error('Resend OTP error:', err);
     res.status(500).json({ error: 'Internal server error.' });

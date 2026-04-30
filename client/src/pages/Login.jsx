@@ -7,6 +7,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [needsVerification, setNeedsVerification] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -14,16 +15,26 @@ export default function Login() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    setNeedsVerification(false);
     setLoading(true);
     try {
       const data = await post('/auth/login', { email, password });
       login(data.token, data.user);
       navigate('/');
     } catch (err) {
-      setError(err.message);
+      if (err.requiresVerification) {
+        setNeedsVerification(true);
+        setError('Your email is not verified yet.');
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
+  }
+
+  function goToVerify() {
+    navigate('/verify-otp', { state: { email } });
   }
 
   return (
@@ -35,7 +46,16 @@ export default function Login() {
           <p>Sign in to your TeamFlow account</p>
         </div>
 
-        {error && <div className="alert alert-error">{error}</div>}
+        {error && (
+          <div className="alert alert-error">
+            {error}
+            {needsVerification && (
+              <button className="btn-link" onClick={goToVerify} style={{ marginLeft: '8px', color: 'var(--accent)', fontWeight: 600, textDecoration: 'underline' }}>
+                Verify now →
+              </button>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">

@@ -4,8 +4,17 @@ function validateEmail(email) {
 }
 
 function validatePassword(password) {
-  if (!password || password.length < 6) {
-    return 'Password must be at least 6 characters.';
+  if (!password || password.length < 8) {
+    return 'Password must be at least 8 characters.';
+  }
+  if (!/[a-zA-Z]/.test(password)) {
+    return 'Password must contain at least one letter.';
+  }
+  if (!/[0-9]/.test(password)) {
+    return 'Password must contain at least one number.';
+  }
+  if (!/[!@#$%^&*(),.?":{}|<>\-_=+\[\]\\\/~`]/.test(password)) {
+    return 'Password must contain at least one symbol (!@#$%^&*...).';
   }
   return null;
 }
@@ -25,4 +34,12 @@ function validateEnum(value, allowed, fieldName) {
   return null;
 }
 
-module.exports = { validateEmail, validatePassword, validateRequired, validateEnum };
+function validateAccountType(type) {
+  const allowed = ['admin', 'member'];
+  if (!type || !allowed.includes(type)) {
+    return `Account type must be one of: ${allowed.join(', ')}`;
+  }
+  return null;
+}
+
+module.exports = { validateEmail, validatePassword, validateRequired, validateEnum, validateAccountType };

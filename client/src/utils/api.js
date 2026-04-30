@@ -15,7 +15,10 @@ export async function api(endpoint, options = {}) {
   const data = await res.json();
 
   if (!res.ok) {
-    throw new Error(data.error || 'Something went wrong');
+    const err = new Error(data.error || 'Something went wrong');
+    if (data.requiresVerification) err.requiresVerification = true;
+    if (data.email) err.email = data.email;
+    throw err;
   }
 
   return data;

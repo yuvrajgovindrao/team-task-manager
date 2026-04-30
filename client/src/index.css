@@ -348,3 +348,104 @@ a:hover { color: var(--accent-hover); }
 .mb-16 { margin-bottom: 16px; }
 .text-sm { font-size: 13px; }
 .text-muted { color: var(--text-muted); }
+
+/* ===== OTP INPUT ===== */
+.otp-container {
+  display: flex; gap: 10px; justify-content: center; margin-top: 8px;
+}
+
+.otp-input {
+  width: 52px; height: 60px; text-align: center; font-size: 24px; font-weight: 700;
+  font-family: var(--font); background: var(--bg-glass); border: 2px solid var(--border);
+  border-radius: var(--radius); color: var(--text-primary); outline: none;
+  transition: var(--transition); caret-color: var(--accent);
+}
+
+.otp-input:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow), 0 0 20px var(--accent-glow);
+}
+
+.otp-input.filled {
+  border-color: var(--accent); background: rgba(59, 130, 246, 0.06);
+}
+
+/* ===== PASSWORD STRENGTH ===== */
+.password-strength {
+  display: flex; align-items: center; gap: 10px; margin-top: 8px;
+}
+
+.strength-bar {
+  flex: 1; height: 4px; background: var(--bg-glass); border-radius: 2px; overflow: hidden;
+}
+
+.strength-fill {
+  height: 100%; border-radius: 2px; transition: width 0.4s ease, background 0.4s ease;
+}
+
+.strength-label {
+  font-size: 12px; font-weight: 600; white-space: nowrap; min-width: 48px;
+}
+
+.password-rules {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;
+}
+
+.password-rules span {
+  font-size: 11px; font-weight: 500; padding: 2px 0;
+}
+
+.rule-pass { color: var(--success); }
+.rule-fail { color: var(--text-muted); }
+
+/* ===== ACCOUNT TYPE CARDS ===== */
+.account-type-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+}
+
+.account-type-card {
+  position: relative; display: flex; flex-direction: column; align-items: center;
+  padding: 20px 16px; background: var(--bg-glass); border: 2px solid var(--border);
+  border-radius: var(--radius); cursor: pointer; transition: var(--transition); text-align: center;
+}
+
+.account-type-card input[type="radio"] {
+  position: absolute; opacity: 0; pointer-events: none;
+}
+
+.account-type-card:hover {
+  border-color: rgba(255, 255, 255, 0.15); background: var(--bg-hover);
+}
+
+.account-type-card.selected {
+  border-color: var(--accent); background: rgba(59, 130, 246, 0.08);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.account-type-icon { font-size: 28px; margin-bottom: 8px; }
+.account-type-name { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+.account-type-desc { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+
+/* ===== DEMO OTP BANNER ===== */
+.demo-otp-banner {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 14px 16px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius-sm); margin-bottom: 20px; text-align: center;
+}
+
+.demo-label { font-size: 13px; color: var(--warning); font-weight: 500; }
+
+.demo-code {
+  font-size: 20px; font-weight: 800; color: var(--warning); letter-spacing: 4px;
+  font-family: 'Courier New', monospace;
+}
+
+/* ===== BUTTON LINK ===== */
+.btn-link {
+  background: none; border: none; color: var(--accent); font-family: var(--font);
+  font-size: 14px; font-weight: 600; cursor: pointer; padding: 0;
+  transition: var(--transition);
+}
+
+.btn-link:hover { color: var(--accent-hover); text-decoration: underline; }
+.btn-link:disabled { cursor: not-allowed; color: var(--text-muted); text-decoration: none; }
+

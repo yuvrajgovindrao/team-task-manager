@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const { pool } = require('../config/db');
 const { authenticate } = require('../middleware/auth');
 const { validateEmail, validatePassword, validateRequired, validateAccountType } = require('../utils/validators');
-const { generateOTP, sendOTP, isSmtpConfigured } = require('../utils/mailer');
+const { generateOTP, sendOTP, isEmailConfigured } = require('../utils/mailer');
 
 const router = express.Router();
 

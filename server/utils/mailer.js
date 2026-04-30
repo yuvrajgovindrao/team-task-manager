@@ -1,41 +1,16 @@
-const nodemailer = require('nodemailer');
-
 // Generate a 6-digit OTP
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// Check if SMTP is configured
-function isSmtpConfigured() {
-  return !!(process.env.SMTP_USER && process.env.SMTP_PASS);
+// Check if email sending is configured
+function isEmailConfigured() {
+  return !!process.env.RESEND_API_KEY;
 }
 
-// Create transporter (Gmail SMTP via port 587 STARTTLS)
-function createTransporter() {
-  return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-  });
-}
-
-// Send OTP email
-async function sendOTP(email, otp) {
-  if (!isSmtpConfigured()) {
-    console.log(`[DEMO MODE] OTP for ${email}: ${otp}`);
-    return { demo: true, otp };
-  }
-
-  const transporter = createTransporter();
-
-  const html = `
+// Build OTP email HTML
+function buildOtpHtml(otp) {
+  return `
     <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #0f172a; border-radius: 16px; overflow: hidden; border: 1px solid #1e293b;">
       <div style="background: linear-gradient(135deg, #3b82f6, #a855f7); padding: 32px; text-align: center;">
         <div style="width: 48px; height: 48px; background: rgba(255,255,255,0.2); border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 22px; color: white; margin-bottom: 12px;">T</div>
@@ -52,15 +27,37 @@ async function sendOTP(email, otp) {
       </div>
     </div>
   `;
+}
 
-  await transporter.sendMail({
-    from: `"TeamFlow" <${process.env.SMTP_USER}>`,
-    to: email,
-    subject: 'Your TeamFlow Verification Code',
-    html,
+// Send OTP email via Resend API (HTTPS, works on Railway)
+async function sendOTP(email, otp) {
+  if (!isEmailConfigured()) {
+    console.log(`[DEMO MODE] OTP for ${email}: ${otp}`);
+    return { demo: true, otp };
+  }
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'TeamFlow <onboarding@resend.dev>',
+      to: [email],
+      subject: 'Your TeamFlow Verification Code',
+      html: buildOtpHtml(otp),
+    }),
   });
 
+  if (!res.ok) {
+    const err = await res.json();
+    console.error('Resend API error:', err);
+    throw new Error(`Email send failed: ${err.message || 'Unknown error'}`);
+  }
+
+  console.log(`OTP email sent to ${email}`);
   return { demo: false };
 }
 
-module.exports = { generateOTP, sendOTP, isSmtpConfigured };
+module.exports = { generateOTP, sendOTP, isEmailConfigured };

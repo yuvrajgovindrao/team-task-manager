@@ -9,7 +9,7 @@ A full-stack web application for team project management with role-based access 
 
 ## 🚀 Live Demo
 
-**Live URL**: _[Add your Railway URL here after deployment]_
+**Live URL**: [https://team-task-manager-production-1d9f.up.railway.app](https://team-task-manager-production-1d9f.up.railway.app)
 
 ## ✨ Features
 

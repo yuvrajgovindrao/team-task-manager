@@ -14,7 +14,11 @@ A full-stack web application for team project management with role-based access 
 ## ✨ Features
 
 ### Authentication
-- User signup & login with JWT tokens
+- User signup with **Admin/Member** account type selection
+- **Email OTP verification** (6-digit code with 10-min expiry)
+- Strong password enforcement (8+ chars, letters, numbers, symbols)
+- Real-time password strength indicator
+- JWT token-based sessions
 - Password hashing with bcryptjs
 - Protected routes & auto-redirect
 

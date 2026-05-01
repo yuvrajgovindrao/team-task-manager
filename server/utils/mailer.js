@@ -37,7 +37,7 @@ async function sendOTP(email, otp) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'TeamFlow <auth@egodev.in>',
+      from: 'TeamFlow <support@egodev.in>',
       to: [email],
       subject: 'Your TeamFlow Verification Code',
       html: buildOtpHtml(otp),

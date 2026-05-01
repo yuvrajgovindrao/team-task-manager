@@ -16,6 +16,10 @@ export default function ProjectDetail() {
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [showEditTask, setShowEditTask] = useState(null);
+  const [showEditProject, setShowEditProject] = useState(false);
+
+  // Confirmation state
+  const [confirmAction, setConfirmAction] = useState(null);
 
   // Filters
   const [filterStatus, setFilterStatus] = useState('');
@@ -69,6 +73,26 @@ export default function ProjectDetail() {
     return new Date(d) < new Date(new Date().toDateString());
   }
 
+  async function handleDeleteProject() {
+    try {
+      await del(`/projects/${id}`);
+      navigate('/projects');
+    } catch (err) {
+      alert(err.message || 'Failed to delete project.');
+    }
+    setConfirmAction(null);
+  }
+
+  async function handleRemoveMember(memberId, memberName) {
+    try {
+      await del(`/projects/${id}/members/${memberId}`);
+      setMembers(prev => prev.filter(x => x.id !== memberId));
+    } catch (err) {
+      alert(err.message || 'Failed to remove member.');
+    }
+    setConfirmAction(null);
+  }
+
   if (loading) return <div className="loading"><div className="spinner"></div></div>;
   if (!project) return <div className="empty-state"><h3>Project not found</h3><button className="btn btn-primary" onClick={() => navigate('/projects')}>Back</button></div>;
 
@@ -77,16 +101,14 @@ export default function ProjectDetail() {
       <div className="flex-between" style={{ marginBottom: 8 }}>
         <button className="btn btn-secondary btn-sm" onClick={() => navigate('/projects')}>← Back</button>
         {isAdmin && (
-          <button className="btn btn-danger btn-sm" onClick={async () => {
-            if (confirm('Delete this project and all its tasks?')) {
-              try {
-                await del(`/projects/${id}`);
-                navigate('/projects');
-              } catch (err) {
-                alert(err.message || 'Failed to delete project.');
-              }
-            }
-          }}>Delete Project</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-secondary btn-sm" onClick={() => setShowEditProject(true)}>✏️ Edit</button>
+            <button className="btn btn-danger btn-sm" onClick={() => setConfirmAction({
+              title: 'Delete Project',
+              message: `Are you sure you want to delete "${project.name}" and all its tasks? This cannot be undone.`,
+              onConfirm: handleDeleteProject
+            })}>🗑️ Delete</button>
+          </div>
         )}
       </div>
 
@@ -164,16 +186,13 @@ export default function ProjectDetail() {
                 </div>
                 <span className={`badge badge-${m.role}`}>{m.role}</span>
                 {isAdmin && m.role !== 'admin' && (
-                  <button className="btn-icon" style={{ fontSize: 12 }} onClick={async (e) => {
+                  <button className="btn-icon" style={{ fontSize: 12 }} onClick={(e) => {
                     e.stopPropagation();
-                    if (confirm(`Remove ${m.name}?`)) {
-                      try {
-                        await del(`/projects/${id}/members/${m.id}`);
-                        setMembers(prev => prev.filter(x => x.id !== m.id));
-                      } catch (err) {
-                        alert(err.message || 'Failed to remove member.');
-                      }
-                    }
+                    setConfirmAction({
+                      title: 'Remove Member',
+                      message: `Remove ${m.name} from this project?`,
+                      onConfirm: () => handleRemoveMember(m.id, m.name)
+                    });
                   }}>✕</button>
                 )}
               </div>
@@ -189,7 +208,21 @@ export default function ProjectDetail() {
       {showMemberModal && <MemberFormModal projectId={id} onClose={() => setShowMemberModal(false)} onAdded={m => { setMembers(prev => [...prev, m]); setShowMemberModal(false); }} />}
 
       {/* Edit Task Modal */}
-      {showEditTask && <EditTaskModal task={showEditTask} isAdmin={isAdmin} members={members} onClose={() => setShowEditTask(null)} onUpdated={updated => { setTasks(prev => prev.map(t => t.id === updated.id ? { ...t, ...updated } : t)); setShowEditTask(null); }} onDeleted={taskId => { setTasks(prev => prev.filter(t => t.id !== taskId)); setShowEditTask(null); }} />}
+      {showEditTask && <EditTaskModal task={showEditTask} isAdmin={isAdmin} members={members} projectId={id} onClose={() => setShowEditTask(null)} onUpdated={updated => { setTasks(prev => prev.map(t => t.id === updated.id ? { ...t, ...updated } : t)); setShowEditTask(null); }} onDeleted={taskId => { setTasks(prev => prev.filter(t => t.id !== taskId)); setShowEditTask(null); }} />}
+
+      {/* Edit Project Modal */}
+      {showEditProject && <EditProjectModal project={project} onClose={() => setShowEditProject(false)} onUpdated={updated => { setProject(updated); setShowEditProject(false); }} />}
+
+      {/* Confirmation Modal */}
+      {confirmAction && (
+        <Modal title={confirmAction.title} onClose={() => setConfirmAction(null)}>
+          <p style={{ marginBottom: 24, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{confirmAction.message}</p>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+            <button className="btn btn-secondary" onClick={() => setConfirmAction(null)}>Cancel</button>
+            <button className="btn btn-danger" onClick={confirmAction.onConfirm}>Confirm</button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -320,7 +353,48 @@ function MemberFormModal({ projectId, onClose, onAdded }) {
   );
 }
 
-function EditTaskModal({ task, isAdmin, members, onClose, onUpdated, onDeleted }) {
+function EditProjectModal({ project, onClose, onUpdated }) {
+  const [name, setName] = useState(project.name);
+  const [description, setDescription] = useState(project.description || '');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+    setSaving(true);
+    try {
+      const data = await put(`/projects/${project.id}`, { name, description });
+      onUpdated(data.project);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal title="Edit Project" onClose={onClose}>
+      {error && <div className="alert alert-error">{error}</div>}
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label>Project Name</label>
+          <input className="form-input" value={name} onChange={e => setName(e.target.value)} required autoFocus />
+        </div>
+        <div className="form-group">
+          <label>Description</label>
+          <textarea className="form-textarea" value={description} onChange={e => setDescription(e.target.value)} placeholder="Optional description" />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 8 }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function EditTaskModal({ task, isAdmin, members, projectId, onClose, onUpdated, onDeleted }) {
   const [status, setStatus] = useState(task.status);
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || '');
@@ -329,6 +403,7 @@ function EditTaskModal({ task, isAdmin, members, onClose, onUpdated, onDeleted }
   const [assignedTo, setAssignedTo] = useState(task.assigned_to || '');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -348,14 +423,28 @@ function EditTaskModal({ task, isAdmin, members, onClose, onUpdated, onDeleted }
   }
 
   async function handleDelete() {
-    if (confirm('Delete this task?')) {
-      try {
-        await del(`/tasks/${task.id}`);
-        onDeleted(task.id);
-      } catch (err) {
-        setError(err.message);
-      }
+    try {
+      await del(`/tasks/${task.id}`);
+      onDeleted(task.id);
+    } catch (err) {
+      setError(err.message);
+      setShowDeleteConfirm(false);
     }
+  }
+
+  if (showDeleteConfirm) {
+    return (
+      <Modal title="Delete Task" onClose={() => setShowDeleteConfirm(false)}>
+        <p style={{ marginBottom: 24, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          Are you sure you want to delete "<strong>{task.title}</strong>"? This cannot be undone.
+        </p>
+        {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error}</div>}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+          <button className="btn btn-secondary" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
+          <button className="btn btn-danger" onClick={handleDelete}>Delete Task</button>
+        </div>
+      </Modal>
+    );
   }
 
   return (
@@ -415,7 +504,7 @@ function EditTaskModal({ task, isAdmin, members, onClose, onUpdated, onDeleted }
           </div>
         )}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-          <div>{isAdmin && <button type="button" className="btn btn-danger btn-sm" onClick={handleDelete}>Delete Task</button>}</div>
+          <div>{isAdmin && <button type="button" className="btn btn-danger btn-sm" onClick={() => setShowDeleteConfirm(true)}>🗑️ Delete Task</button>}</div>
           <div style={{ display: 'flex', gap: 12 }}>
             <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>

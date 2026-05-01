@@ -6,7 +6,7 @@ export default function Signup() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [accountType, setAccountType] = useState('member');
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -36,7 +36,7 @@ export default function Signup() {
     setError('');
     setLoading(true);
     try {
-      const data = await post('/auth/signup', { name, email, password, account_type: accountType });
+      const data = await post('/auth/signup', { name, email, password });
       // Redirect to OTP verification
       navigate('/verify-otp', {
         state: { email: data.email },
@@ -97,26 +97,6 @@ export default function Signup() {
               <span className={/[a-zA-Z]/.test(password) ? 'rule-pass' : 'rule-fail'}>✓ Letter</span>
               <span className={/[0-9]/.test(password) ? 'rule-pass' : 'rule-fail'}>✓ Number</span>
               <span className={/[!@#$%^&*(),.?":{}|<>\-_=+\[\]\\\/~`]/.test(password) ? 'rule-pass' : 'rule-fail'}>✓ Symbol</span>
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label>Account Type</label>
-            <div className="account-type-grid">
-              <label className={`account-type-card ${accountType === 'admin' ? 'selected' : ''}`}>
-                <input type="radio" name="accountType" value="admin"
-                  checked={accountType === 'admin'} onChange={() => setAccountType('admin')} />
-                <div className="account-type-icon">🛡️</div>
-                <div className="account-type-name">Admin</div>
-                <div className="account-type-desc">Create projects, manage teams & assign tasks</div>
-              </label>
-              <label className={`account-type-card ${accountType === 'member' ? 'selected' : ''}`}>
-                <input type="radio" name="accountType" value="member"
-                  checked={accountType === 'member'} onChange={() => setAccountType('member')} />
-                <div className="account-type-icon">👤</div>
-                <div className="account-type-name">Member</div>
-                <div className="account-type-desc">View projects, update task status & collaborate</div>
-              </label>
             </div>
           </div>
 

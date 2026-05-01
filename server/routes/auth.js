@@ -12,9 +12,9 @@ const router = express.Router();
 // Account is NOT created until OTP is verified. Data is stored in signup_otps.
 router.post('/signup', async (req, res) => {
   try {
-    const { name, email, password, account_type } = req.body;
+    const { name, email, password } = req.body;
 
-    const reqErr = validateRequired(['name', 'email', 'password', 'account_type'], req.body);
+    const reqErr = validateRequired(['name', 'email', 'password'], req.body);
     if (reqErr) return res.status(400).json({ error: reqErr });
 
     if (!validateEmail(email)) {
@@ -23,9 +23,6 @@ router.post('/signup', async (req, res) => {
 
     const pwErr = validatePassword(password);
     if (pwErr) return res.status(400).json({ error: pwErr });
-
-    const typeErr = validateAccountType(account_type);
-    if (typeErr) return res.status(400).json({ error: typeErr });
 
     const cleanEmail = email.toLowerCase().trim();
 
@@ -48,7 +45,7 @@ router.post('/signup', async (req, res) => {
     await pool.query(
       `INSERT INTO signup_otps (name, email, password_hash, account_type, otp_code, otp_expires_at)
        VALUES ($1, $2, $3, $4, $5, $6)`,
-      [name.trim(), cleanEmail, passwordHash, account_type, otp, otpExpires]
+      [name.trim(), cleanEmail, passwordHash, 'member', otp, otpExpires]
     );
 
     // Send OTP email

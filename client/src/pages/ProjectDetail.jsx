@@ -11,12 +11,16 @@ export default function ProjectDetail() {
   const [tasks, setTasks] = useState([]);
   const [myRole, setMyRole] = useState('member');
   const [loading, setLoading] = useState(true);
+  const [myUserId, setMyUserId] = useState(null);
 
   // Modals
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [showEditTask, setShowEditTask] = useState(null);
   const [showEditProject, setShowEditProject] = useState(false);
+
+  // Expanded task
+  const [expandedTaskId, setExpandedTaskId] = useState(null);
 
   // Confirmation state
   const [confirmAction, setConfirmAction] = useState(null);
@@ -30,14 +34,16 @@ export default function ProjectDetail() {
   async function loadData() {
     setLoading(true);
     try {
-      const [projData, tasksData] = await Promise.all([
+      const [projData, tasksData, meData] = await Promise.all([
         get(`/projects/${id}`),
         get(`/projects/${id}/tasks`),
+        get('/auth/me'),
       ]);
       setProject(projData.project);
       setMembers(projData.members);
       setMyRole(projData.myRole);
       setTasks(tasksData.tasks);
+      setMyUserId(meData.user.id);
     } catch (err) {
       console.error(err);
     } finally {
@@ -91,6 +97,10 @@ export default function ProjectDetail() {
       alert(err.message || 'Failed to remove member.');
     }
     setConfirmAction(null);
+  }
+
+  function toggleExpand(taskId) {
+    setExpandedTaskId(prev => prev === taskId ? null : taskId);
   }
 
   if (loading) return <div className="loading"><div className="spinner"></div></div>;
@@ -148,23 +158,91 @@ export default function ProjectDetail() {
             </div>
           ) : (
             <div className="task-list">
-              {tasks.map(task => (
-                <div key={task.id} className="task-item" onClick={() => setShowEditTask(task)}>
-                  <span className={`badge badge-${task.status}`}>{task.status.replace('_', ' ')}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="task-title">{task.title}</div>
-                    <div className="flex gap-8 mt-8" style={{ flexWrap: 'wrap' }}>
-                      <span className={`badge badge-${task.priority}`}>{task.priority}</span>
-                      {task.assigned_to_name && <span className="text-sm text-muted">👤 {task.assigned_to_name}</span>}
-                      {task.due_date && (
-                        <span className={`text-sm ${isOverdue(task.due_date) && task.status !== 'done' ? 'task-date overdue' : 'text-muted'}`}>
-                          📅 {formatDate(task.due_date)}
-                        </span>
-                      )}
+              {tasks.map(task => {
+                const expanded = expandedTaskId === task.id;
+                return (
+                  <div key={task.id} className={`task-item-wrap ${expanded ? 'expanded' : ''}`}>
+                    <div className="task-item" onClick={() => toggleExpand(task.id)}>
+                      <span className={`badge badge-${task.status}`}>{task.status.replace('_', ' ')}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="task-title">{task.title}</div>
+                        <div className="flex gap-8 mt-8" style={{ flexWrap: 'wrap' }}>
+                          <span className={`badge badge-${task.priority}`}>{task.priority}</span>
+                          {task.assigned_to_name && <span className="text-sm text-muted">👤 {task.assigned_to_name}</span>}
+                          {task.due_date && (
+                            <span className={`text-sm ${isOverdue(task.due_date) && task.status !== 'done' ? 'task-date overdue' : 'text-muted'}`}>
+                              📅 {formatDate(task.due_date)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="expand-icon">{expanded ? '▲' : '▼'}</span>
                     </div>
+                    {expanded && (
+                      <div className="task-details">
+                        <div className="task-details-grid">
+                          <div className="detail-item">
+                            <span className="detail-label">Status</span>
+                            <span className={`badge badge-${task.status}`}>{task.status.replace('_', ' ')}</span>
+                          </div>
+                          <div className="detail-item">
+                            <span className="detail-label">Priority</span>
+                            <span className={`badge badge-${task.priority}`}>{task.priority}</span>
+                          </div>
+                          <div className="detail-item">
+                            <span className="detail-label">Assigned To</span>
+                            <span>{task.assigned_to_name || 'Unassigned'}</span>
+                          </div>
+                          <div className="detail-item">
+                            <span className="detail-label">Due Date</span>
+                            <span className={isOverdue(task.due_date) && task.status !== 'done' ? 'overdue' : ''}>
+                              {task.due_date ? formatDate(task.due_date) : 'No due date'}
+                            </span>
+                          </div>
+                        </div>
+                        {task.description && (
+                          <div style={{ marginTop: 12 }}>
+                            <span className="detail-label">Description</span>
+                            <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6 }}>
+                              {task.description}
+                            </p>
+                          </div>
+                        )}
+                        <div className="detail-item" style={{ marginTop: 8 }}>
+                          <span className="detail-label">Created</span>
+                          <span className="text-sm text-muted">{formatDate(task.created_at)}</span>
+                        </div>
+                        {isAdmin && (
+                          <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
+                            <button className="btn btn-secondary btn-sm" onClick={(e) => { e.stopPropagation(); setShowEditTask(task); }}>
+                              ✏️ Edit Task
+                            </button>
+                            <button className="btn btn-danger btn-sm" onClick={(e) => {
+                              e.stopPropagation();
+                              setConfirmAction({
+                                title: 'Delete Task',
+                                message: `Delete "${task.title}"? This cannot be undone.`,
+                                onConfirm: async () => {
+                                  try {
+                                    await del(`/tasks/${task.id}`);
+                                    setTasks(prev => prev.filter(t => t.id !== task.id));
+                                    setExpandedTaskId(null);
+                                  } catch (err) {
+                                    alert(err.message || 'Failed to delete task.');
+                                  }
+                                  setConfirmAction(null);
+                                }
+                              });
+                            }}>
+                              🗑️ Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -177,26 +255,30 @@ export default function ProjectDetail() {
           </div>
 
           <div className="members-list">
-            {members.map(m => (
-              <div key={m.id} className="member-item">
-                <div className="member-avatar">{m.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}</div>
-                <div className="member-info">
-                  <div className="member-name">{m.name}</div>
-                  <div className="member-email">{m.email}</div>
+            {members.map(m => {
+              // Admin can remove anyone except themselves
+              const canRemove = isAdmin && m.id !== myUserId;
+              return (
+                <div key={m.id} className="member-item">
+                  <div className="member-avatar">{m.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}</div>
+                  <div className="member-info">
+                    <div className="member-name">{m.name}</div>
+                    <div className="member-email">{m.email}</div>
+                  </div>
+                  <span className={`badge badge-${m.role}`}>{m.role}</span>
+                  {canRemove && (
+                    <button className="btn-icon" style={{ fontSize: 12 }} onClick={(e) => {
+                      e.stopPropagation();
+                      setConfirmAction({
+                        title: 'Remove Member',
+                        message: `Remove ${m.name} (${m.role}) from this project?`,
+                        onConfirm: () => handleRemoveMember(m.id, m.name)
+                      });
+                    }}>✕</button>
+                  )}
                 </div>
-                <span className={`badge badge-${m.role}`}>{m.role}</span>
-                {isAdmin && m.role !== 'admin' && (
-                  <button className="btn-icon" style={{ fontSize: 12 }} onClick={(e) => {
-                    e.stopPropagation();
-                    setConfirmAction({
-                      title: 'Remove Member',
-                      message: `Remove ${m.name} from this project?`,
-                      onConfirm: () => handleRemoveMember(m.id, m.name)
-                    });
-                  }}>✕</button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -208,7 +290,7 @@ export default function ProjectDetail() {
       {showMemberModal && <MemberFormModal projectId={id} onClose={() => setShowMemberModal(false)} onAdded={m => { setMembers(prev => [...prev, m]); setShowMemberModal(false); }} />}
 
       {/* Edit Task Modal */}
-      {showEditTask && <EditTaskModal task={showEditTask} isAdmin={isAdmin} members={members} projectId={id} onClose={() => setShowEditTask(null)} onUpdated={updated => { setTasks(prev => prev.map(t => t.id === updated.id ? { ...t, ...updated } : t)); setShowEditTask(null); }} onDeleted={taskId => { setTasks(prev => prev.filter(t => t.id !== taskId)); setShowEditTask(null); }} />}
+      {showEditTask && <EditTaskModal task={showEditTask} isAdmin={isAdmin} members={members} projectId={id} onClose={() => setShowEditTask(null)} onUpdated={updated => { setTasks(prev => prev.map(t => t.id === updated.id ? { ...t, ...updated } : t)); setShowEditTask(null); }} onDeleted={taskId => { setTasks(prev => prev.filter(t => t.id !== taskId)); setShowEditTask(null); setExpandedTaskId(null); }} />}
 
       {/* Edit Project Modal */}
       {showEditProject && <EditProjectModal project={project} onClose={() => setShowEditProject(false)} onUpdated={updated => { setProject(updated); setShowEditProject(false); }} />}

@@ -79,8 +79,12 @@ export default function ProjectDetail() {
         {isAdmin && (
           <button className="btn btn-danger btn-sm" onClick={async () => {
             if (confirm('Delete this project and all its tasks?')) {
-              await del(`/projects/${id}`);
-              navigate('/projects');
+              try {
+                await del(`/projects/${id}`);
+                navigate('/projects');
+              } catch (err) {
+                alert(err.message || 'Failed to delete project.');
+              }
             }
           }}>Delete Project</button>
         )}
@@ -160,10 +164,15 @@ export default function ProjectDetail() {
                 </div>
                 <span className={`badge badge-${m.role}`}>{m.role}</span>
                 {isAdmin && m.role !== 'admin' && (
-                  <button className="btn-icon" style={{ fontSize: 12 }} onClick={async () => {
+                  <button className="btn-icon" style={{ fontSize: 12 }} onClick={async (e) => {
+                    e.stopPropagation();
                     if (confirm(`Remove ${m.name}?`)) {
-                      await del(`/projects/${id}/members/${m.id}`);
-                      setMembers(prev => prev.filter(x => x.id !== m.id));
+                      try {
+                        await del(`/projects/${id}/members/${m.id}`);
+                        setMembers(prev => prev.filter(x => x.id !== m.id));
+                      } catch (err) {
+                        alert(err.message || 'Failed to remove member.');
+                      }
                     }
                   }}>✕</button>
                 )}

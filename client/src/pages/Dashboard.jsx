@@ -35,12 +35,12 @@ export default function Dashboard() {
       </div>
 
       <div className="stats-grid">
-        <div className="stat-card">
+        <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => navigate('/projects')}>
           <div className="stat-icon">📁</div>
           <div className="stat-value">{totalProjects}</div>
           <div className="stat-label">Total Projects</div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => navigate('/projects')}>
           <div className="stat-icon">📋</div>
           <div className="stat-value">{totalTasks}</div>
           <div className="stat-label">Total Tasks</div>

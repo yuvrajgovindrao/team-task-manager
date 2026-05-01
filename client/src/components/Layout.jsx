@@ -42,6 +42,10 @@ export default function Layout() {
             onClick={() => setSidebarOpen(false)}>
             <span className="icon">📁</span> Projects
           </NavLink>
+          <NavLink to="/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            onClick={() => setSidebarOpen(false)}>
+            <span className="icon">⚙️</span> Settings
+          </NavLink>
         </nav>
 
         <div className="sidebar-footer">

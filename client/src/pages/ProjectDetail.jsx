@@ -240,6 +240,27 @@ export default function ProjectDetail() {
                             </button>
                           </div>
                         )}
+                        {/* Status update — available to ALL members */}
+                        <div style={{ marginTop: isAdmin ? 8 : 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                          <span className="detail-label" style={{ marginBottom: 0 }}>Update Status:</span>
+                          {['todo', 'in_progress', 'done'].map(s => (
+                            <button key={s}
+                              className={`btn btn-sm ${task.status === s ? 'btn-primary' : 'btn-secondary'}`}
+                              style={{ fontSize: 12, textTransform: 'capitalize' }}
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (task.status === s) return;
+                                try {
+                                  const data = await put(`/tasks/${task.id}`, { status: s });
+                                  setTasks(prev => prev.map(t => t.id === task.id ? { ...t, ...data.task } : t));
+                                } catch (err) {
+                                  alert(err.message || 'Failed to update status.');
+                                }
+                              }}>
+                              {s === 'todo' ? '📝 To Do' : s === 'in_progress' ? '🔄 In Progress' : '✅ Done'}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>

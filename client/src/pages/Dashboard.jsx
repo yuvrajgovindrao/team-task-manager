@@ -116,7 +116,7 @@ export default function Dashboard() {
                     <span className={`badge badge-${task.status}`}>{task.status.replace('_', ' ')}</span>
                     <span className="task-title">{task.title}</span>
                     <span className="text-sm text-muted">{task.project_name}</span>
-                    {task.assigned_to_name && <span className="task-assignee">👤 {task.assigned_to_name}</span>}
+                    {task.assignee_names && <span className="task-assignee">👤 {task.assignee_names}</span>}
                   </div>
                 ))}
               </div>

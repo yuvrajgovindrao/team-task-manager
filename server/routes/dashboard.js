@@ -46,10 +46,10 @@ router.get('/', authenticate, async (req, res) => {
 
     // Overdue tasks (due_date < today and not done)
     const overdueResult = await pool.query(
-      `SELECT t.*, p.name as project_name, u.name as assigned_to_name
+      `SELECT t.*, p.name as project_name,
+        (SELECT string_agg(u2.name, ', ') FROM task_assignees ta2 JOIN users u2 ON u2.id = ta2.user_id WHERE ta2.task_id = t.id) as assignee_names
        FROM tasks t
        JOIN projects p ON p.id = t.project_id
-       LEFT JOIN users u ON u.id = t.assigned_to
        WHERE t.project_id = ANY($1)
          AND t.due_date < CURRENT_DATE
          AND t.status != 'done'
@@ -60,10 +60,10 @@ router.get('/', authenticate, async (req, res) => {
 
     // Recent tasks (last 10)
     const recentResult = await pool.query(
-      `SELECT t.*, p.name as project_name, u.name as assigned_to_name
+      `SELECT t.*, p.name as project_name,
+        (SELECT string_agg(u2.name, ', ') FROM task_assignees ta2 JOIN users u2 ON u2.id = ta2.user_id WHERE ta2.task_id = t.id) as assignee_names
        FROM tasks t
        JOIN projects p ON p.id = t.project_id
-       LEFT JOIN users u ON u.id = t.assigned_to
        WHERE t.project_id = ANY($1)
        ORDER BY t.created_at DESC
        LIMIT 10`,
@@ -75,7 +75,8 @@ router.get('/', authenticate, async (req, res) => {
       `SELECT t.*, p.name as project_name
        FROM tasks t
        JOIN projects p ON p.id = t.project_id
-       WHERE t.assigned_to = $1 AND t.status != 'done'
+       JOIN task_assignees ta ON ta.task_id = t.id
+       WHERE ta.user_id = $1 AND t.status != 'done'
        ORDER BY t.due_date ASC NULLS LAST, t.priority DESC
        LIMIT 10`,
       [userId]

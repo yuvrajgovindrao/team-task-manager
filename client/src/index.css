@@ -500,3 +500,23 @@ a:hover { color: var(--accent-hover); }
 }
 
 .overdue { color: var(--danger) !important; font-weight: 600; }
+
+/* ===== MULTI-ASSIGNEE CHECKLIST ===== */
+.assignee-checklist {
+  max-height: 180px; overflow-y: auto; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 4px;
+}
+
+.assignee-check-item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  border-radius: 6px; cursor: pointer; transition: var(--transition);
+  font-size: 14px; color: var(--text-primary);
+}
+.assignee-check-item:hover { background: var(--bg-hover); }
+.assignee-check-item.selected { background: rgba(59,130,246,0.1); }
+
+.assignee-check-item input[type="checkbox"] {
+  width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0;
+}
+
+.assignee-check-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

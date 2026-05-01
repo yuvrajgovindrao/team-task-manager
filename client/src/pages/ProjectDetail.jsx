@@ -168,7 +168,9 @@ export default function ProjectDetail() {
                         <div className="task-title">{task.title}</div>
                         <div className="flex gap-8 mt-8" style={{ flexWrap: 'wrap' }}>
                           <span className={`badge badge-${task.priority}`}>{task.priority}</span>
-                          {task.assigned_to_name && <span className="text-sm text-muted">👤 {task.assigned_to_name}</span>}
+                          {task.assignees && task.assignees.length > 0 && (
+                            <span className="text-sm text-muted">👤 {task.assignees.map(a => a.name).join(', ')}</span>
+                          )}
                           {task.due_date && (
                             <span className={`text-sm ${isOverdue(task.due_date) && task.status !== 'done' ? 'task-date overdue' : 'text-muted'}`}>
                               📅 {formatDate(task.due_date)}
@@ -191,7 +193,7 @@ export default function ProjectDetail() {
                           </div>
                           <div className="detail-item">
                             <span className="detail-label">Assigned To</span>
-                            <span>{task.assigned_to_name || 'Unassigned'}</span>
+                            <span>{task.assignees && task.assignees.length > 0 ? task.assignees.map(a => a.name).join(', ') : 'Unassigned'}</span>
                           </div>
                           <div className="detail-item">
                             <span className="detail-label">Due Date</span>
@@ -317,9 +319,15 @@ function TaskFormModal({ projectId, members, onClose, onCreated }) {
   const [status, setStatus] = useState('todo');
   const [priority, setPriority] = useState('medium');
   const [dueDate, setDueDate] = useState('');
-  const [assignedTo, setAssignedTo] = useState('');
+  const [selectedAssignees, setSelectedAssignees] = useState([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  function toggleAssignee(memberId) {
+    setSelectedAssignees(prev =>
+      prev.includes(memberId) ? prev.filter(id => id !== memberId) : [...prev, memberId]
+    );
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -329,7 +337,7 @@ function TaskFormModal({ projectId, members, onClose, onCreated }) {
       const data = await post(`/projects/${projectId}/tasks`, {
         title, description, status, priority,
         due_date: dueDate || null,
-        assigned_to: assignedTo ? parseInt(assignedTo) : null,
+        assignee_ids: selectedAssignees,
       });
       onCreated(data.task);
     } catch (err) {
@@ -369,17 +377,20 @@ function TaskFormModal({ projectId, members, onClose, onCreated }) {
             </select>
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div className="form-group">
-            <label>Due Date</label>
-            <input type="date" className="form-input" value={dueDate} onChange={e => setDueDate(e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label>Assign To</label>
-            <select className="form-select" value={assignedTo} onChange={e => setAssignedTo(e.target.value)}>
-              <option value="">Unassigned</option>
-              {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </select>
+        <div className="form-group">
+          <label>Due Date</label>
+          <input type="date" className="form-input" value={dueDate} onChange={e => setDueDate(e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label>Assign To ({selectedAssignees.length} selected)</label>
+          <div className="assignee-checklist">
+            {members.map(m => (
+              <label key={m.id} className={`assignee-check-item ${selectedAssignees.includes(m.id) ? 'selected' : ''}`}>
+                <input type="checkbox" checked={selectedAssignees.includes(m.id)} onChange={() => toggleAssignee(m.id)} />
+                <span className="assignee-check-name">{m.name}</span>
+                <span className="badge badge-member" style={{ fontSize: 10 }}>{m.role}</span>
+              </label>
+            ))}
           </div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 8 }}>
@@ -482,10 +493,18 @@ function EditTaskModal({ task, isAdmin, members, projectId, onClose, onUpdated, 
   const [description, setDescription] = useState(task.description || '');
   const [priority, setPriority] = useState(task.priority);
   const [dueDate, setDueDate] = useState(task.due_date ? task.due_date.split('T')[0] : '');
-  const [assignedTo, setAssignedTo] = useState(task.assigned_to || '');
+  const [selectedAssignees, setSelectedAssignees] = useState(
+    task.assignees ? task.assignees.map(a => a.id) : (task.assigned_to ? [task.assigned_to] : [])
+  );
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  function toggleAssignee(memberId) {
+    setSelectedAssignees(prev =>
+      prev.includes(memberId) ? prev.filter(id => id !== memberId) : [...prev, memberId]
+    );
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -493,7 +512,7 @@ function EditTaskModal({ task, isAdmin, members, projectId, onClose, onUpdated, 
     setSaving(true);
     try {
       const body = isAdmin
-        ? { title, description, status, priority, due_date: dueDate || null, assigned_to: assignedTo ? parseInt(assignedTo) : null }
+        ? { title, description, status, priority, due_date: dueDate || null, assignee_ids: selectedAssignees }
         : { status };
       const data = await put(`/tasks/${task.id}`, body);
       onUpdated(data.task);
@@ -561,17 +580,20 @@ function EditTaskModal({ task, isAdmin, members, projectId, onClose, onUpdated, 
                 </select>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div className="form-group">
-                <label>Due Date</label>
-                <input type="date" className="form-input" value={dueDate} onChange={e => setDueDate(e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>Assign To</label>
-                <select className="form-select" value={assignedTo} onChange={e => setAssignedTo(e.target.value)}>
-                  <option value="">Unassigned</option>
-                  {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                </select>
+            <div className="form-group">
+              <label>Due Date</label>
+              <input type="date" className="form-input" value={dueDate} onChange={e => setDueDate(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>Assign To ({selectedAssignees.length} selected)</label>
+              <div className="assignee-checklist">
+                {members.map(m => (
+                  <label key={m.id} className={`assignee-check-item ${selectedAssignees.includes(m.id) ? 'selected' : ''}`}>
+                    <input type="checkbox" checked={selectedAssignees.includes(m.id)} onChange={() => toggleAssignee(m.id)} />
+                    <span className="assignee-check-name">{m.name}</span>
+                    <span className="badge badge-member" style={{ fontSize: 10 }}>{m.role}</span>
+                  </label>
+                ))}
               </div>
             </div>
           </>
@@ -596,3 +618,4 @@ function EditTaskModal({ task, isAdmin, members, projectId, onClose, onUpdated, 
     </Modal>
   );
 }
+
